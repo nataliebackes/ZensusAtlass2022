@@ -56,7 +56,7 @@ forvalues i = 1/42 {
 }
 
 * 4. Speichern
-save "$dataout\\zensusatlass2022.dta", replace
+save "$dataout\\zensusatlas2022.dta", replace
 
 *optional:
 drop merge_*
@@ -68,23 +68,18 @@ rename mehrere_deutsch_und_auslaendisch mehrere_deutsch_und_ausl
 ds, has(type string)
 local stringvars `r(varlist)'
 
-* Variablen ausschließen, die nicht konvertiert werden sollen
-local stringvars : list stringvars - gitter_id_100m
-
 foreach var of local stringvars {
     
-    * Falls es sich um eine werterläuternde Variable handelt → als Dummy verarbeiten
+    * gitter_id_100m niemals bearbeiten
+    if "`var'" == "gitter_id_100m" continue
+
     if strpos("`var'", "werterlaeuternde_zeichen") {
         display "Erzeuge Dummy für Flag-Variable: `var'"
-        
         gen byte `var'f = (`var' == "KLAMMER")
     }
-    
-    * Sonst normal konvertieren (String → Double)
     else {
         display "Verarbeite numerische String-Variable: `var'"
-        replace `var' = subinstr(`var', ",", ".", .)  // Komma in Punkt umwandeln
-        
+        replace `var' = subinstr(`var', ",", ".", .)
         gen double `var'_n = real(`var')
         drop `var'
         rename `var'_n `var'
@@ -131,7 +126,7 @@ forvalues i = 1/42 {
 }
 
 * 4. Speichern
-use "$dataout\\zensusatlass2022.dta", replace
+use "$dataout\\zensusatlas2022.dta", replace
 
 *optional:
 drop merge_*
@@ -144,22 +139,29 @@ ds, has(type string)
 local stringvars `r(varlist)'
 
 * Variable ausschließen 
+* Alle String-Variablen erfassen
+ds, has(type string)
+local stringvars `r(varlist)'
+
+* ID-Variable ausschließen
 local stringvars : list stringvars - gitter_id_1km
 
+* Durch alle String-Variablen iterieren
 foreach var of local stringvars {
-    
-    * Falls es sich um eine werterläuternde Variable handelt → als Dummy verarbeiten
+
+    * Sicherheitshalber: gitter_id_1km nie anfassen
+    if "`var'" == "gitter_id_1km" continue
+
+    * Flag-Variable erkennen (z. B. enthält 'werterlaeuternde_zeichen')
     if strpos("`var'", "werterlaeuternde_zeichen") {
         display "Erzeuge Dummy für Flag-Variable: `var'"
-        
         gen byte `var'f = (`var' == "KLAMMER")
     }
-    
-    * Sonst normal konvertieren (String → Double)
+
+    * Normale numerische String-Variable → konvertieren
     else {
         display "Verarbeite numerische String-Variable: `var'"
-        replace `var' = subinstr(`var', ",", ".", .)  // Komma in Punkt umwandeln
-        
+        replace `var' = subinstr(`var', ",", ".", .)  // Komma zu Punkt
         gen double `var'_n = real(`var')
         drop `var'
         rename `var'_n `var'
